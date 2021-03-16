@@ -73,7 +73,7 @@ class TacotronSTFT(torch.nn.Module):
         output = dynamic_range_decompression(magnitudes)
         return output
 
-    def mel_spectrogram(self, y, ref_level_db = 20, magnitude_power=1.5):
+    def mel_spectrogram(self, y, ref_level_db=20, magnitude_power=1.5):
         """Computes mel-spectrograms from a batch of waves
         PARAMS
         ------
@@ -83,8 +83,8 @@ class TacotronSTFT(torch.nn.Module):
         -------
         mel_output: torch.FloatTensor of shape (B, n_mel_channels, T)
         """
-        assert(torch.min(y.data) >= -1)
-        assert(torch.max(y.data) <= 1)
+        #assert(torch.min(y.data) >= -1)
+        #assert(torch.max(y.data) <= 1)
 
         magnitudes, phases = self.stft_fn.transform(y)
         magnitudes = magnitudes.data

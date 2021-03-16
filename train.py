@@ -89,7 +89,9 @@ def warm_start_model(checkpoint_path, model, ignore_layers):
 def load_checkpoint(checkpoint_path, model, optimizer):
     assert os.path.isfile(checkpoint_path)
     print("Loading checkpoint '{}'".format(checkpoint_path))
+    #import pickle
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
+    #checkpoint_dict = pickle.load(open(checkpoint_path, 'rb'))
     model.load_state_dict(checkpoint_dict['state_dict'])
     optimizer.load_state_dict(checkpoint_dict['optimizer'])
     learning_rate = checkpoint_dict['learning_rate']
@@ -173,7 +175,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     logger = prepare_directories_and_logger(
         output_directory, log_directory, rank)
 
-    train_loader, valset, collate_fn, train_sampler = prepare_dataloaders(hparams)
+    train_loader, valset, collate_fn, train_sampler = prepare_dataloaders(
+        hparams)
 
     # Load checkpoint if one exists
     iteration = 0
@@ -200,15 +203,17 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
         for i, batch in enumerate(train_loader):
             start = time.perf_counter()
             if iteration > 0 and iteration % hparams.learning_rate_anneal == 0:
-                learning_rate = max(
-                    hparams.learning_rate_min, learning_rate * 0.5)
+                # learning_rate = max(
+                #     hparams.learning_rate_min, learning_rate * 0.5)
+                learning_rate = hparams.learning_rate * \
+                    (0.01 ** (epoch / 1000.0))
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = learning_rate
 
             model.zero_grad()
             x, y = model.parse_batch(batch)
             y_pred = model(x)
-
+            
             loss = criterion(y_pred, y)
             if hparams.distributed_run:
                 reduced_loss = reduce_tensor(loss.data, n_gpus).item()
@@ -240,8 +245,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
             if not is_overflow and (iteration % hparams.iters_per_checkpoint == 0):
                 validate(model, criterion, valset, iteration,
-                        hparams.batch_size, n_gpus, collate_fn, logger,
-                        hparams.distributed_run, rank)
+                         hparams.batch_size, n_gpus, collate_fn, logger,
+                         hparams.distributed_run, rank)
                 if rank == 0:
                     checkpoint_path = os.path.join(
                         output_directory, "checkpoint_{}".format(iteration))

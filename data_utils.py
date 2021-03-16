@@ -18,6 +18,7 @@ class TextMelLoader(torch.utils.data.Dataset):
         2) normalizes text and converts them to sequences of one-hot vectors
         3) computes mel-spectrograms and f0s from audio files.
     """
+
     def __init__(self, audiopaths_and_text, hparams, speaker_ids=None):
         self.audiopaths_and_text = load_filepaths_and_text(audiopaths_and_text)
         self.text_cleaners = hparams.text_cleaners
@@ -41,7 +42,8 @@ class TextMelLoader(torch.utils.data.Dataset):
 
         self.speaker_ids = speaker_ids
         if speaker_ids is None:
-            self.speaker_ids = self.create_speaker_lookup_table(self.audiopaths_and_text)
+            self.speaker_ids = self.create_speaker_lookup_table(
+                self.audiopaths_and_text)
 
         random.seed(1234)
         random.shuffle(self.audiopaths_and_text)
@@ -77,6 +79,7 @@ class TextMelLoader(torch.utils.data.Dataset):
         if sampling_rate != self.stft.sampling_rate:
             raise ValueError("{} SR doesn't match target {} SR".format(
                 sampling_rate, self.stft.sampling_rate))
+        
         audio_norm = audio / self.max_wav_value
         audio_norm = audio_norm.unsqueeze(0)
         melspec = self.stft.mel_spectrogram(audio_norm)
@@ -106,6 +109,7 @@ class TextMelLoader(torch.utils.data.Dataset):
 class TextMelCollate():
     """ Zero-pads model inputs and targets based on number of frames per setep
     """
+
     def __init__(self, n_frames_per_step):
         self.n_frames_per_step = n_frames_per_step
 
@@ -131,7 +135,8 @@ class TextMelCollate():
         num_mels = batch[0][1].size(0)
         max_target_len = max([x[1].size(1) for x in batch])
         if max_target_len % self.n_frames_per_step != 0:
-            max_target_len += self.n_frames_per_step - max_target_len % self.n_frames_per_step
+            max_target_len += self.n_frames_per_step - \
+                max_target_len % self.n_frames_per_step
             assert max_target_len % self.n_frames_per_step == 0
 
         # include mel padded, gate padded and speaker ids
